@@ -1,0 +1,6 @@
+{
+	"inputDir": "../../../../../StreamingAssets/Settings",
+	"outputDir": "../../../../../_Project/Settings",
+	"namespace": "Helios.Settings.Strings",
+	"skipSROptions": "false"
+}

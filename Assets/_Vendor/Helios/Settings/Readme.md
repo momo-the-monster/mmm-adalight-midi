@@ -1,0 +1,81 @@
+# Helios Settings
+v 0.10.3
+
+# Background
+In order to support our applications, we're building a reusable component to handle app-wide settings.
+The aim is to combine the best of ExternalConfig with the best of Garuda in a way that everyone can get behind.
+
+The problems we're looking to solve:
+* Easy creation and management of settings from code
+* Easy updates to of a subset of tweakable items on-site
+* Create builds/scenes with tweakable settings for Designers
+* Runtime addition of settings and temporary items
+* Persist to disk, do not overwrite settings with a new build.
+* Enable a way to reset an app to known-good settings in case of an issue
+* Works on Standalone Win & Mac, Android, iOS
+* Help developers avoid mistyped-string issues in pulling settings resulting in bugs
+* Commit settings to git without conflicts
+* Make fields observable
+
+# Dependencies
+This project requires Json.Net and integrates with SRDebugger. Both of these packages can be found in the Dependencies folder as Unity Packages. You can import them if you need them, or safely ignore them if you don't.
+
+# Integration
+The recommended integration path is to include Helios Settings as a Submodule.
+
+**Submodule Inclusion**
+
+1. Add the repo as a submodule: `git submodule add git@bitbucket.org:heliosinteract/settings.git Assets/_Vendor/Helios/Settings`
+2. Checkout the latest tag: `cd Assets/_Vendor/Helios/Settings && git checkout 0.10.3`
+
+**Non-Submodule Inclusion**
+
+If you'd rather use it fully embedded into your project, you can clone the project to your working drive like normal, check out the latest tag and then just copy it into Assets/_Vendor.
+
+# Usage
+**To use Helios.Settings like ExternalConfig, you can:**
+* Create a Group: `var ExternalConfig = Group.Get('ExternalConfig');`
+   * If this group does not exist on disk or in memory, it is created at this point, and will be saved to disk on `Application.Quit`.
+   * If the group exists on disk, the Group class checks its static _loadedGroups Dictionary to see if it has a reference to it in memory, and returns that.
+   * If the group exists on disk but has not yet been loaded to the static Dictionary, it is loaded from disk with its existing properties and values, and a reference saved to _loadedGroups.
+* Get a variable: `int duration = ExternalConfig.Get('duration', 60);`
+    * Unlike ExternalConfig, this does not create the value on the group if it does not exist, it just returns the default.
+* Set a variable: `ExternalConfig.Set('duration', 45);`
+    * The variable is created if it does not yet exist.
+
+Notice that you have to create the Group in the first step above, that's an extra step but lets you have several different groups if you want them. To keep your code compact, you can use the Getter for Groups and Field Values fluently like this.
+`Group.Get('ExternalConfig').Get<int>('duration', 60);`
+This has the same effect as the two-step process above.
+
+**To use Helios.Settings like Garuda, you can:**
+* Use the editor Window to create a new SuperGroup
+    * It can have a default name if you only ever need one.
+* Add Groups using the wizard like before, this creates them on disk and adds them to the SuperGroup
+* Add Fields using the wizard like before.
+* Get and set values in your code just like above:
+    * `var ArtSettings = Group.Get('ArtSettings');`
+    * `float duration = ArtSettings.Get<float>('duration', 45);`
+* You can optionally generate constants for all your fields to enable edit-time checking, see 'String Generation' below.
+
+# String Generation
+For edit-time checks on your code and intellisense completion, we provide a tool to generate const string properties for your Groups and Fields. This is included in the root of this repo in the 'SettingsGenerator' folder, and can be safely copied into your projects.
+
+To use it from the Unity Editor, find it in the File Menu under Helios > GenerateStrings. It will log what it does to your console.
+You can also run it directly by at SettingsGenerator/GenerateStrings.exe.
+Here's what it does:
+* Create a folder at Assets/Project/Settings if needed
+* Search Assets/StreamingAssets/Settings for all Json files created of groups (it skips SuperGroups).
+* Create a static class for each Group, saving it within the Helios.Settings.Strings namespace 
+* Create public const string properties for each Field in each Group where the string value is exactly as you created it, and the property name is a sanitized PascalCase version. Note that if your property starts with a number, it will be replaced with the string version of that number for compatibility, ie '3DPosition' becomes 'ThreeDPosition'.
+
+Once generated and processed by Unity, you will be able to do the following:
+
+* add `'Using Helios.Settings.Strings'` to your class and then:
+    * `var ArtSettings = Group.Get(Art.GroupName)`
+    * `float duration = ArtSettings.Get(Art.Duration, 45f);`
+
+You can change folder paths and the default namespace that is generated by modifying config.json next to GenerateStrings.exe
+The tool will also generate UI Getter/Setter bindings for SROptions by default. These are not harmful if you don't use SROptions, and give you runtime access to bool, string, int and float types.
+
+# Architecture
+![architecture-diagram](https://i.imgur.com/C2VAjCq.jpg "Diagram")
